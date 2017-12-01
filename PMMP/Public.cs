@@ -38,7 +38,7 @@ namespace PMMP
                 {
                     IsLegitimate = false;
                     IsWait = false;
-                    TimeOut();
+                    TimeOut(new IPEndPoint(ConnetIP, ConnetPort.Port));
                 }
             }));
             CoutDownOneMin.Start();
@@ -67,7 +67,7 @@ namespace PMMP
         /// 倒计时剩余秒数
         /// </summary>
         public int CoutDownSecond { private set; get; }
-        public delegate void TimeOutDelegate();
+        public delegate void TimeOutDelegate(EndPoint endPoint);
         public TimeOutDelegate TimeOut;
     }
     class Ports
@@ -85,10 +85,53 @@ namespace PMMP
         }
         public int Port { get; private set; }
     }
+    class Mmaper
+    {
+        public Mmaper(string User, IPAddress localhostIP, Ports localhostPort)
+        {
+
+        }
+        public string User { private set; get; }
+        public IPAddress LocalhostIP { private set; get; }
+        public Ports LocalhostPort { private set; get; }
+        public Speed MmapSpend { private set; get; }
+    }
+    class Speed
+    {
+        public Speed(long bytes)
+        {
+            Byte = bytes;
+            Bit = bytes * 8;
+        }
+        public long Byte { private set; get; }
+        public long Bit { private set; get; }
+        public long GetKB_S()
+        {
+            return Byte / 1024;
+        }
+        public long GetKbps()
+        {
+            return (Byte / 1024) * 8;
+        }
+        public long GetMB_S()
+        {
+            return (Byte / 1024) / 1024;
+        }
+        public long GetMbps()
+        {
+            return ((Byte / 1024) / 1024) * 8;
+        }
+    }
+    enum SpeedType
+    {
+        Byte,
+        Bit
+    }
     enum ConnetType
     {
         None,
         Login,
-        Mmap
+        Mmap,
+        All
     }
 }

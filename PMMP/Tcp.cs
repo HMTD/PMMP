@@ -69,7 +69,7 @@ namespace PMMP
                     Task ReceiveTask = new Task(new Action(() => ReceiveMessage(NewConnet)));
                     ReceiveTask.Start();
                     SocketList.Add(NewConnet);
-                    SocketDict.Add(NewConnet.LocalEndPoint, NewConnet);
+                    SocketDict.Add(NewConnet.RemoteEndPoint, NewConnet);
                 }
             }
             cc: string a = "";
@@ -87,14 +87,14 @@ namespace PMMP
                 }
                 catch
                 {
-                    TcpError(ConnetSocket.LocalEndPoint);
                     goto cc;
                 }
-                ReceiveContext(ConnetSocket.LocalEndPoint, Buffer, Length);
+                ReceiveContext(ConnetSocket.RemoteEndPoint, Buffer, Length);
             }
             cc: ConnetSocket.Close();
             ConnetSocket.Dispose();
             GC.Collect();
+            TcpError(ConnetSocket.RemoteEndPoint);
         }
     }
 }
