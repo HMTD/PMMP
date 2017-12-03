@@ -6,7 +6,10 @@ namespace PMMP
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            for (int i = 0; i < args.Length; i = i + 1)
+                Console.WriteLine(args[i]);
+            Console.ReadLine();
+
         }
     }
 }

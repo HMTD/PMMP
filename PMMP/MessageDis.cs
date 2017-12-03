@@ -6,6 +6,9 @@ using System.Net.Sockets;
 
 namespace PMMP
 {
+    /// <summary>
+    /// 消息拆包类
+    /// </summary>
     class MessageDis
     {
         Dictionary<EndPoint, string> MessageDict = new Dictionary<EndPoint, string>();

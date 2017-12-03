@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace PMMP
 {
+    /// <summary>
+    /// 连接对象类
+    /// </summary>
     class Connet
     {
         /// <summary>
@@ -60,6 +63,10 @@ namespace PMMP
         /// </summary>
         public bool IsLegitimate { private set; get; }
         /// <summary>
+        /// 用户名
+        /// </summary>
+        public string User { set; get; }
+        /// <summary>
         /// 是否等待中
         /// </summary>
         public bool IsWait { private set; get; }
@@ -70,6 +77,9 @@ namespace PMMP
         public delegate void TimeOutDelegate(EndPoint endPoint);
         public TimeOutDelegate TimeOut;
     }
+    /// <summary>
+    /// 端口对象类
+    /// </summary>
     class Ports
     {
         /// <summary>
@@ -92,6 +102,9 @@ namespace PMMP
         /// </summary>
         public int Port { get; private set; }
     }
+    /// <summary>
+    /// 映射对象类
+    /// </summary>
     class Mmaper
     {
         /// <summary>
@@ -100,9 +113,13 @@ namespace PMMP
         /// <param name="User">用户名</param>
         /// <param name="localhostIP">服务端IP地址</param>
         /// <param name="localhostPort">映射端口</param>
-        public Mmaper(string User, IPAddress localhostIP, Ports localhostPort)
+        /// <param name="MMAPSpend">映射限制速度</param>
+        public Mmaper(string User, IPAddress localhostIP, Ports localhostPort, Speed MMAPSpend)
         {
-
+            this.User = User;
+            LocalhostIP = localhostIP;
+            LocalhostPort = localhostPort;
+            MmapSpend = MMAPSpend;
         }
         /// <summary>
         /// 用户名
@@ -128,7 +145,13 @@ namespace PMMP
             Byte = bytes;
             Bit = bytes * 8;
         }
+        /// <summary>
+        /// 字节速度
+        /// </summary>
         public long Byte { private set; get; }
+        /// <summary>
+        /// 比特速度
+        /// </summary>
         public long Bit { private set; get; }
         /// <summary>
         /// 返回KB/S速度数值
@@ -162,6 +185,27 @@ namespace PMMP
         {
             return ((Byte / 1024) / 1024) * 8;
         }
+    }
+    class Flow
+    {
+        public Flow(double Bytes)
+        {
+            B = Bytes;
+            KB = Bytes / 1024;
+            MB = Bytes / 1024 / 1024;
+            GB = Bytes / 1024 / 1024 / 1024;
+        }
+        public void Sub(double bytes)
+        {
+            B = B - bytes;
+            KB = B / 1024;
+            MB = KB / 1024;
+            GB = KB / 1024;
+        }
+        public double B { get; set; }
+        public double KB { set; get; }
+        public double MB { set; get; }
+        public double GB { set; get; }
     }
     enum SpeedType
     {

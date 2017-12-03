@@ -89,42 +89,42 @@ namespace PMMP
                 bool IsHaveConnet = true;
                 try
                 {
-                    IsHaveConnet = TcpL.Pending();
+                    IsHaveConnet = TcpL.Pending();                                                 // 是否有等待的连接请求
                 }
                 catch { goto cc; }
-                if (IsHaveConnet)
+                if (IsHaveConnet)                                                                  // 如果有
                 {
-                    Socket NewConnet = TcpL.AcceptSocket();
-                    Conneter(NewConnet.LocalEndPoint);
-                    Task ReceiveTask = new Task(new Action(() => ReceiveMessage(NewConnet)));
-                    ReceiveTask.Start();
-                    SocketList.Add(NewConnet);
-                    SocketDict.Add(NewConnet.RemoteEndPoint, NewConnet);
+                    Socket NewConnet = TcpL.AcceptSocket();                                        // 获取连接套接字
+                    Conneter(NewConnet.RemoteEndPoint);                                            // 获取远程网络终结点
+                    Task ReceiveTask = new Task(new Action(() => ReceiveMessage(NewConnet)));      // 创立消息接收线程
+                    ReceiveTask.Start();                                                           // 启动线程
+                    SocketList.Add(NewConnet);                                                     // 添加到数组
+                    SocketDict.Add(NewConnet.RemoteEndPoint, NewConnet);                           // 添加到字典
                 }
             }
-            cc: string a = "";
+            cc: string a = "";                                                                     // 跳出循环
             a = a + "";
         }
         private void ReceiveMessage(Socket ConnetSocket)
         {
-            byte[] Buffer = new byte[1500];
-            while (ConnetSocket.Connected)
+            byte[] Buffer = new byte[1500];                                                        // 创建一个缓冲区
+            while (ConnetSocket.Connected)                                                         // 确认是否还连接
             {
-                int Length = -1;
+                int Length = -1;                                                                   // 设置接收大小变量
                 try
                 {
-                    Length = ConnetSocket.Receive(Buffer);
+                    Length = ConnetSocket.Receive(Buffer);                                         // 接收数据并返回数据长度
                 }
                 catch
                 {
-                    goto cc;
+                    goto cc;                                                                       // 出错就跳出循环
                 }
-                ReceiveContext(ConnetSocket.RemoteEndPoint, Buffer, Length);
+                ReceiveContext(ConnetSocket.RemoteEndPoint, Buffer, Length);                       // 用委托传出数据
             }
-            cc: ConnetSocket.Close();
-            ConnetSocket.Dispose();
-            GC.Collect();
-            TcpError(ConnetSocket.RemoteEndPoint);
+            cc: ConnetSocket.Close();                                                              // 跳出循环，关闭套接字
+            ConnetSocket.Dispose();                                                                // 释放所有资源
+            GC.Collect();                                                                          // 清理内存
+            TcpError(ConnetSocket.RemoteEndPoint);                                                 // 通过委托，发出连接中断信息
         }
     }
 }
