@@ -67,7 +67,6 @@ namespace PMMP
                 }
                 if (Message[0] == "Mmap")
                 {
-                    Mmaper mmaper = new Mmaper();
                   
                 }
                 if (Message[0] == "Select")

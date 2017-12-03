@@ -9,49 +9,79 @@ namespace PMMP
 {
     class Tcp
     {
-        TcpListener TcpL;
-        Socket ListenSocket;
-        Task AcceptThreadTask;
+        TcpListener TcpL;                                                                          // TcpListener对象
+        Socket ListenSocket;                                                                       // 监听套接字
+        Task AcceptThreadTask;                                                                     // 接受连接线程
+        /// <summary>
+        /// 储存连接套接字的字典
+        /// </summary>
         public Dictionary<EndPoint, Socket> SocketDict = new Dictionary<EndPoint, Socket>();
-        List<Socket> SocketList = new List<Socket>();
+        List<Socket> SocketList = new List<Socket>();                                              // 套接字数组
         public delegate void TcpErrorDelegate(EndPoint endPoint);
+        /// <summary>
+        /// Tcp连接断开委托
+        /// </summary>
         public TcpErrorDelegate TcpError;
         public delegate void ReceiveContextDelegate(EndPoint endPoint, byte[] Context, int Length);
+        /// <summary>
+        /// 收到消息委托
+        /// </summary>
         public ReceiveContextDelegate ReceiveContext;
         public delegate void ConneterDelegate(EndPoint endPoint);
+        /// <summary>
+        /// 新连接委托
+        /// </summary>
         public ConneterDelegate Conneter;
+        /// <summary>
+        /// 构造方法
+        /// </summary>
+        /// <param name="IP">监听地址</param>
+        /// <param name="Port">监听IP</param>
         public Tcp(IPAddress IP, Ports Port)
         {
-            TcpL = new TcpListener(IP, Port.Port);
-            TcpL.Start();
-            ListenSocket = TcpL.Server;
-            AcceptThreadTask = new Task(new Action(WhileAccept));
-            AcceptThreadTask.Start();
+            TcpL = new TcpListener(IP, Port.Port);                                                 // new一个TcpListener对象
+            TcpL.Start();                                                                          // 开始监听
+            ListenSocket = TcpL.Server;                                                            // 赋值监听套接字
+            AcceptThreadTask = new Task(new Action(WhileAccept));                                  // 创建接受连接线程
+            AcceptThreadTask.Start();                                                              // 开始接受连接线程
         }
+        /// <summary>
+        /// 停止TCP方法
+        /// </summary>
         public void Stop()
         {
-            TcpL.Server.Close();
-            TcpL.Server.Dispose();
-            TcpL.Stop();
-            TcpL = null;
-            for (int i = SocketList.Count - 1; i >= 0; i = i + 1)
+            TcpL.Stop();                                                                           // 关闭侦听程序
+            TcpL = null;                                                                           // 赋值为空
+            for (int i = SocketList.Count - 1; i >= 0; i = i + 1)                                  // 遍历连接socket
             {
-                SocketList[i].Close();
-                SocketList[i].Dispose();
-                SocketList[i] = null;
-                SocketList.RemoveAt(i);
+                SocketList[i].Close();                                                             // 关闭连接
+                SocketList[i].Dispose();                                                           // 释放资源
+                SocketList[i] = null;                                                              // 赋值为空
             }
+            SocketList.RemoveRange(0, SocketList.Count - 1);
             SocketList = null;
-            GC.Collect();
+            GC.Collect();                                                                          // 清理内存
         }
+        /// <summary>
+        /// 发送数据
+        /// </summary>
+        /// <param name="endPoint">远程网络终结点</param>
+        /// <param name="Context">内容</param>
         public void Send(EndPoint endPoint, byte[] Context)
         {
             SocketDict[endPoint].Send(Context);
         }
+        /// <summary>
+        /// 关闭一个连接
+        /// </summary>
+        /// <param name="endPoint">远程网络终结点</param>
         public void Close(EndPoint endPoint)
         {
             SocketDict[endPoint].Close();
         }
+        /// <summary>
+        /// 接收数据
+        /// </summary>
         private void WhileAccept()
         {
             while (true)
