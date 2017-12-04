@@ -202,6 +202,13 @@ namespace PMMP
             MB = KB / 1024;
             GB = KB / 1024;
         }
+        public void Add(double bytes)
+        {
+            B = B + bytes;
+            KB = B / 1024;
+            MB = KB / 1024;
+            GB = KB / 1024;
+        }
         public double B { get; set; }
         public double KB { set; get; }
         public double MB { set; get; }
