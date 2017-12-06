@@ -41,9 +41,9 @@ namespace PMMP
         /// </summary>
         Dictionary<EndPoint, Connet> None = new Dictionary<EndPoint, Connet>();
         /// <summary>
-        /// 已开启的映射规则字典
+        /// 已开启的映射规则集合
         /// </summary>
-        Dictionary<EndPoint, Mmaper> MmapDict = new Dictionary<EndPoint, Mmaper>();
+        List<Mmaper> MmapDict = new List<Mmaper>();
         /// <summary>
         /// 映射对象
         /// </summary>
@@ -193,33 +193,112 @@ namespace PMMP
                 }
                 if (Message[0] == "Mmap")                                                          // 鉴别为请求映射命令
                 {   // TCP,192.168.1.10,25565
-                    string[] Mmap = Message[1].Split(',');                                         // 分割数据
-                    for (int i = 0; i < Mmap.Length; i = i + 1)
+                    if (ThisConneter.ConnetType != ConnetType.None)
                     {
-                        if (Select.SelectMmap(ThisConneter.User, Mmap[1], Mmap[2]))                // 遍历数据，检查权限
+                        string[] Mmap = Message[1].Split(',');                                     // 分割数据
+                        for (int i = 0; i < Mmap.Length; i = i + 1)
                         {
-                            // 创建新映射对象并且实例化     用户名               IP地址                      端口                            查询映射速度        用户名        ip      端口
-                            Mmaper NewMmap = new Mmaper(ThisConneter.User, IPAddress.Parse(Mmap[1]), new Ports(int.Parse(Mmap[2])), Select.SelectMmapSpeed(ThisConneter.User, Mmap[1], Mmap[2]));
-                            MmapDict.Add(endPoint, NewMmap);                                       // 添加到映射规则字典
-                            // 创建映射对象并且实例化，映射规则    查询剩余流量    用户名           ip       端口
-                            Mmaps mmaps = new Mmaps(NewMmap, Select.SelectFlow(ThisConneter.User, Mmap[1], Mmap[2]));
-                            MmapsDict.Add(endPoint, mmaps);                                        // 添加到映射规则字典
-                            mmaps.Messages += MmapMessager;                                        // 绑定接收消息事件
-                            mmaps.Conneter += MmapConneter;                                        // 绑定收到连接事件
-                            mmaps.FlowEnd += MmapFlowEnd;                                          // 绑定流量耗尽事件
-                            mmaps.TcpError += MmapTcpError;                                        // 绑定Tcp连接终止事件
+                            if (Select.SelectMmap(ThisConneter.User, Mmap[1], Mmap[2]))            // 遍历数据，检查权限
+                            {
+                                // 创建新映射对象并且实例化     用户名               IP地址                      端口                            查询映射速度        用户名        ip      端口
+                                Mmaper NewMmap = new Mmaper(ThisConneter.User, IPAddress.Parse(Mmap[1]), new Ports(int.Parse(Mmap[2])), Select.SelectMmapSpeed(ThisConneter.User, Mmap[1], Mmap[2]));
+                                MmapDict.Add(NewMmap);                                             // 添加到映射规则集合
+                                                                                                   // 创建映射对象并且实例化，映射规则    查询剩余流量    用户名           ip       端口
+                                Mmaps mmaps = new Mmaps(NewMmap, Select.SelectFlow(ThisConneter.User, Mmap[1], Mmap[2]));
+                                MmapsDict.Add(new IPEndPoint(NewMmap.LocalhostIP, NewMmap.LocalhostPort.Port), mmaps);// 添加到映射规则字典
+                                mmaps.Messages += MmapMessager;                                    // 绑定接收消息事件
+                                mmaps.Conneter += MmapConneter;                                    // 绑定收到连接事件
+                                mmaps.FlowEnd += MmapFlowEnd;                                      // 绑定流量耗尽事件
+                                mmaps.TcpError += MmapTcpError;                                    // 绑定Tcp连接终止事件
+                            }
+                            else
+                                SendMessage(endPoint, "Mmap Error " + Mmap[1] + ":" + Mmap[2] + "无映射权限");// 返回无权限信息
                         }
-                        else
-                            SendMessage(endPoint, "Mmap Error " + Mmap[1] + ":" + Mmap[2] + "无映射权限");// 返回无权限信息
+                    }
+                    else
+                    {
+                        SendMessage(endPoint, "Mmap Error 未登录");                                // 返回无权限信息
                     }
                 }
                 if (Message[0] == "Select")                                                        // 鉴别为查询映射权限命令
                 {
-
+                    if (ThisConneter.ConnetType != ConnetType.None)
+                    {
+                        string Return = "MmapSelectReturn " + Select.SelectMmapAll(ThisConneter.User);// 获取用户名下的所有映射规则
+                        SendMessage(endPoint, Return);                                             // 发送给客户端
+                    }
+                    else
+                    {
+                        SendMessage(endPoint, "Select Error 未登录");                              // 返回无权限信息
+                    }
                 }
                 if (Message[0] == "MmapInfo")                                                      // 鉴别为映射数据传输
-                {
-
+                {//MmapInfo 180.1.1.5:6666->192.168.1.10:25565 XXXXXXXXXXXX(Base64)
+                    if (ThisConneter.ConnetType != ConnetType.None)
+                    {
+                        IPAddress ClientiPAddress = IPAddress.Parse(Message[1].Split("->")[0].Split(":")[0]);// 获取客户端IP
+                        Ports ClientPort = new Ports(int.Parse(Message[1].Split("->")[0].Split(":")[1]));// 获取客户端端口
+                        IPAddress ServeriPAddress = IPAddress.Parse(Message[1].Split("->")[1].Split(":")[0]);// 获取服务器IP
+                        Ports ServerPort = new Ports(int.Parse(Message[1].Split("->")[1].Split(":")[1]));// 获取服务器端口
+                        IPEndPoint ClientiPEndPoint = new IPEndPoint(ClientiPAddress, ClientPort.Port);// 创建客户端网络终结点
+                        IPEndPoint ServeriPEndPoint = new IPEndPoint(ServeriPAddress, ServerPort.Port);// 创建服务器网络终结点
+                        if (MmapsDict.ContainsKey(ServeriPEndPoint))
+                            MmapsDict[ServeriPEndPoint].Send(ClientiPEndPoint, Convert.FromBase64String(Message[2]));// 发送数据
+                        else
+                            SendMessage(endPoint, "MmapInfo Error 未找到映射");                   // 返回未找到映射
+                    }
+                    else
+                    {
+                        SendMessage(endPoint, "Select Error 未登录");                              // 返回无权限信息
+                    }
+                }
+                if (Message[0] == "TcpClose")                                                      // 鉴别为关闭连接
+                {//TcpClose 180.1.1.5:6666->192.168.1.10:25565
+                    if (ThisConneter.ConnetType != ConnetType.None)
+                    {
+                        IPAddress ClientiPAddress = IPAddress.Parse(Message[1].Split("->")[0].Split(":")[0]);// 获取客户端IP
+                        Ports ClientPort = new Ports(int.Parse(Message[1].Split("->")[0].Split(":")[1]));// 获取客户端端口
+                        IPAddress ServeriPAddress = IPAddress.Parse(Message[1].Split("->")[1].Split(":")[0]);// 获取服务器IP
+                        Ports ServerPort = new Ports(int.Parse(Message[1].Split("->")[1].Split(":")[1]));// 获取服务器端口
+                        IPEndPoint ClientiPEndPoint = new IPEndPoint(ClientiPAddress, ClientPort.Port);// 创建客户端网络终结点
+                        IPEndPoint ServeriPEndPoint = new IPEndPoint(ServeriPAddress, ServerPort.Port);// 创建服务器网络终结点
+                        if (MmapsDict.ContainsKey(ServeriPEndPoint))
+                            MmapsDict[ServeriPEndPoint].Close(ClientiPEndPoint);                   // 关闭连接
+                        else
+                            SendMessage(endPoint, "TcpClose Error 未找到映射");                    // 返回未找到映射
+                    }
+                    else
+                    {
+                        SendMessage(endPoint, "Select Error 未登录");                              // 返回无权限信息
+                    }
+                }
+                if (Message[0] == "MmapStop")                                                      // 鉴别为停止映射
+                {//MmapStop 192.168.1.10:25565
+                    if (ThisConneter.ConnetType != ConnetType.None)
+                    {
+                        IPAddress ServeriPAddress = IPAddress.Parse(Message[1].Split("->")[1].Split(":")[0]);// 获取服务器IP
+                        Ports ServerPort = new Ports(int.Parse(Message[1].Split("->")[1].Split(":")[1]));// 获取服务器端口
+                        IPEndPoint ServeriPEndPoint = new IPEndPoint(ServeriPAddress, ServerPort.Port);// 创建服务器网络终结点
+                        if (MmapsDict.ContainsKey(ServeriPEndPoint))
+                        {
+                            Flow flow = MmapsDict[ServeriPEndPoint].Stop();                        // 映射并且获取剩余流量
+                            double MB = flow.MB;                                                   // 获取MB数值
+                            if (flow.IsInfinity)
+                            {
+                                Select.WriteSpend(ThisConneter.User, ServeriPAddress.ToString(), ServerPort.Port.ToString(), "∞");
+                            }
+                            else
+                            {
+                                Select.WriteSpend(ThisConneter.User, ServeriPAddress.ToString(), ServerPort.Port.ToString(), MB.ToString());
+                            }
+                        }
+                        else
+                            SendMessage(endPoint, "TcpClose Error 未找到映射");                    // 返回未找到映射
+                    }
+                    else
+                    {
+                        SendMessage(endPoint, "Select Error 未登录");                              // 返回无权限信息
+                    }
                 }
             }
         }

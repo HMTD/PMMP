@@ -213,6 +213,7 @@ namespace PMMP
         public double KB { set; get; }
         public double MB { set; get; }
         public double GB { set; get; }
+        public bool IsInfinity { set; get; }
     }
     enum SpeedType
     {

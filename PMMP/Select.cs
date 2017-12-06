@@ -18,6 +18,53 @@ namespace PMMP
         Name=Admin{TCP,192.168.1.10,25565,1,∞}
         ........
         */
+        static ReaderWriterLockSlim LogWriteLock = new ReaderWriterLockSlim();
+        static ReaderWriterLockSlim LogWriteLock1 = new ReaderWriterLockSlim();
+        /// <summary>
+        /// 修改剩余流量
+        /// </summary>
+        /// <param name="User">用户名</param>
+        /// <param name="IP">IP</param>
+        /// <param name="Port">端口</param>
+        /// <param name="Flow">剩余流量</param>
+        public static void WriteSpend(string User, string IP, string Port, string Flow)
+        {
+            LogWriteLock1.EnterWriteLock();
+            string FileContext = File.ReadAllText("Sql/Mmap.db");                                  // 获取映射权限储存文件
+            string[] Context = FileContext.Split('\r');                                            // 按行分割
+            int MmapInt = -1;                                                                      // 储存位置
+            string MmapContextStr = null;
+            for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数组
+            {
+                if (Context[i].Contains("Name=" + User))                                           // 找到对应用户名
+                {
+                    MmapContextStr = Context[i].Substring(("Name=" + User).Length - 1);            // 写入缓存
+                    MmapInt = i;
+                }
+            }
+            if (MmapInt >= 0)
+            {
+                List<string> MmapContext = new List<string>();
+                for (int i = 0; i < MmapContextStr.Split("}{").Length - 1; i = i + 1)                  // 遍历缓存
+                {
+                    MmapContext.Add(MmapContextStr.Split("}{")[i]);                                    // 写入集合
+                }
+                MmapContext.Add(MmapContextStr.Split("}{")[MmapContextStr.Split("}{").Length - 1].Replace("}", ""));
+                for (int i = 0; i < MmapContext.Count; i = i + 1)
+                {
+                    if (MmapContext[i].Split(',')[1] == IP && MmapContext[i].Split(',')[2] == Port)    // 核对映射
+                    {
+                        MmapContext[i] = MmapContext[i].Split(',')[0] + "," + MmapContext[i].Split(',')[1] + "," + MmapContext[i].Split(',')[2] + "," + MmapContext[i].Split(',')[3] + "," + Flow;
+                    }
+                }
+                string Files = "Name=" + User;
+                for (int i = 0; i < MmapContext.Count; i = i + 1)
+                {
+                    Files = Files + "{" + MmapContext[i] + "}";
+                }
+                Context[MmapInt] = Files;
+            }
+        }
         /// <summary>
         /// 获取文件内容 带有排它锁
         /// </summary>
@@ -29,6 +76,23 @@ namespace PMMP
             string FileContext = File.ReadAllText(FileRoad);
             LogWriteLock.EnterWriteLock();
             return FileContext;
+        }
+        /// <summary>
+        /// 查询一个用户的所有映射权限的所有信息
+        /// </summary>
+        /// <param name="User"></param>
+        /// <returns></returns>
+        public static string SelectMmapAll(string User)
+        {
+            string FileContext = GetFile("Sql/Mmap.db");                                           // 获取映射权限储存文件
+            string[] Context = FileContext.Split('\r');                                            // 按行分割
+            string MmapContextStr = null;
+            for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数组
+            {
+                if (Context[i].Contains("Name=" + User))                                           // 找到对应用户名
+                    MmapContextStr = Context[i].Substring(("Name=" + User).Length - 1);            // 写入缓存
+            }
+            return MmapContextStr;                                                                 // 返回数据
         }
         /// <summary>
         /// 查询密码
@@ -77,7 +141,13 @@ namespace PMMP
             {
                 if (MmapContext[i].Split(',')[1] == IP && MmapContext[i].Split(',')[2] == Port)    // 获取映射速度
                 {
-                    Return = new Flow(double.Parse(MmapContext[i].Split(',')[4]));
+                    if (MmapContext[i].Split(',')[4] == "∞")
+                    {
+                        Return = new Flow(0.0 / 0.0);
+                        Return.IsInfinity = true;
+                    }
+                    else
+                        Return = new Flow(double.Parse(MmapContext[i].Split(',')[4]));
                 }
             }
             return Return;                                                                         // 返回
@@ -126,7 +196,7 @@ namespace PMMP
         {
             string FileContext = GetFile("Sql/Mmap.db");                                           // 获取数据文件
             string[] Context = FileContext.Split('\r');                                            // 分割数据
-            string MmapContextStr = null; 
+            string MmapContextStr = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数据
             {
                 if (Context[i].Contains("Name=" + User))
@@ -148,7 +218,7 @@ namespace PMMP
             }
             return Return;
         }
-        static ReaderWriterLockSlim LogWriteLock = new ReaderWriterLockSlim();
+
         private static string GetKey()
         {
             string Return = null;
