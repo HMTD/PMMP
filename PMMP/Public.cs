@@ -103,7 +103,7 @@ namespace PMMP
         public int Port { get; private set; }
     }
     /// <summary>
-    /// 映射对象类
+    /// 映射规则类
     /// </summary>
     class Mmaper
     {
