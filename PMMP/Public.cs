@@ -140,7 +140,7 @@ namespace PMMP
     }
     class Speed
     {
-        public Speed(long bytes)
+        public Speed(double bytes)
         {
             Byte = bytes;
             Bit = bytes * 8;
@@ -148,16 +148,16 @@ namespace PMMP
         /// <summary>
         /// 字节速度
         /// </summary>
-        public long Byte { private set; get; }
+        public double Byte { private set; get; }
         /// <summary>
         /// 比特速度
         /// </summary>
-        public long Bit { private set; get; }
+        public double Bit { private set; get; }
         /// <summary>
         /// 返回KB/S速度数值
         /// </summary>
         /// <returns></returns>
-        public long GetKB_S()
+        public double GetKB_S()
         {
             return Byte / 1024;
         }
@@ -165,7 +165,7 @@ namespace PMMP
         /// 返回Kbps速度数值
         /// </summary>
         /// <returns></returns>
-        public long GetKbps()
+        public double GetKbps()
         {
             return (Byte / 1024) * 8;
         }
@@ -173,7 +173,7 @@ namespace PMMP
         /// 返回MB/S速度数值
         /// </summary>
         /// <returns></returns>
-        public long GetMB_S()
+        public double GetMB_S()
         {
             return (Byte / 1024) / 1024;
         }
@@ -181,7 +181,7 @@ namespace PMMP
         /// 返回Mbps速度数值
         /// </summary>
         /// <returns></returns>
-        public long GetMbps()
+        public double GetMbps()
         {
             return ((Byte / 1024) / 1024) * 8;
         }

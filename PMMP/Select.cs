@@ -31,7 +31,7 @@ namespace PMMP
         {
             LogWriteLock1.EnterWriteLock();
             string FileContext = File.ReadAllText("Sql/Mmap.db");                                  // 获取映射权限储存文件
-            string[] Context = FileContext.Split('\r');                                            // 按行分割
+            string[] Context = FileContext.Split('\n');                                            // 按行分割
             int MmapInt = -1;                                                                      // 储存位置
             string MmapContextStr = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数组
@@ -45,11 +45,11 @@ namespace PMMP
             if (MmapInt >= 0)
             {
                 List<string> MmapContext = new List<string>();
-                for (int i = 0; i < MmapContextStr.Split("}{").Length - 1; i = i + 1)                  // 遍历缓存
+                for (int i = 0; i < MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1; i = i + 1)                  // 遍历缓存
                 {
-                    MmapContext.Add(MmapContextStr.Split("}{")[i]);                                    // 写入集合
+                    MmapContext.Add(MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[i]);                                    // 写入集合
                 }
-                MmapContext.Add(MmapContextStr.Split("}{")[MmapContextStr.Split("}{").Length - 1].Replace("}", ""));
+                MmapContext.Add(MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1].Replace("}", ""));
                 for (int i = 0; i < MmapContext.Count; i = i + 1)
                 {
                     if (MmapContext[i].Split(',')[1] == IP && MmapContext[i].Split(',')[2] == Port)    // 核对映射
@@ -72,42 +72,42 @@ namespace PMMP
         /// <returns></returns>
         public static string GetFile(string FileRoad)
         {
-            LogWriteLock.EnterWriteLock();
+            LogWriteLock.EnterReadLock();
             string FileContext = File.ReadAllText(FileRoad);
-            LogWriteLock.EnterWriteLock();
+            LogWriteLock.ExitReadLock();
             return FileContext;
         }
         /// <summary>
         /// 查询一个用户的所有映射权限的所有信息
         /// </summary>
         /// <param name="User"></param>
-        /// <returns></returns>
+        /// <returns>Bug已消除</returns>
         public static string SelectMmapAll(string User)
         {
             string FileContext = GetFile("Sql/Mmap.db");                                           // 获取映射权限储存文件
-            string[] Context = FileContext.Split('\r');                                            // 按行分割
+            string[] Context = FileContext.Split('\n');                                            // 按行分割
             string MmapContextStr = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数组
             {
-                if (Context[i].Contains("Name=" + User))                                           // 找到对应用户名
-                    MmapContextStr = Context[i].Substring(("Name=" + User).Length - 1);            // 写入缓存
+                if (Context[i].Contains("Name=" + User + "&{"))                                           // 找到对应用户名
+                    MmapContextStr = Context[i].Substring(("Name=" + User + "&{").Length - 1);            // 写入缓存
             }
-            return MmapContextStr;                                                                 // 返回数据
+            return MmapContextStr.Replace("\r", "");                                                                 // 返回数据
         }
         /// <summary>
         /// 查询密码
         /// </summary>
         /// <param name="User">用户名</param>
-        /// <returns></returns>
+        /// <returns>Bug已消除</returns>
         public static string SelectPassword(string User)
         {
             string FileContext = GetFile("Sql/User.db");                                           // 获取用户名密码储存文件
-            string[] Context = FileContext.Split('\r');                                            // 按行分割
+            string[] Context = FileContext.Split('\n');                                            // 按行分割
             string Return = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数组
             {
-                if (Context[i].Contains("Name=" + User))                                           // 找到用户名
-                    Return = Context[i].Substring(("Name=" + User).Length);                        // 返回密码
+                if (Context[i].Contains("Name=" + User + "&"))                                           // 找到用户名
+                    Return = Context[i].Substring(("Name=" + User + "&Password=").Length).Replace("\r", "");          // 返回密码
             }
             return Return;
         }
@@ -117,26 +117,27 @@ namespace PMMP
         /// <param name="User">用户名</param>
         /// <param name="IP">监听IP</param>
         /// <param name="Port">监听端口</param>
-        /// <returns></returns>
+        /// <returns>Bug已排除</returns>
         public static Flow SelectFlow(string User, string IP, string Port)
         {
             // Name=用户名{映射模式,本机IP,本机端口,映射速度Mbps,剩余流量MB}
             // Name=Admin{TCP,192.168.1.10,25565,1,∞}{TCP,192.168.1.10,25566,5,1024}
             string FileContext = GetFile("Sql/Mmap.db");                                           // 获取映射权限储存文件
-            string[] Context = FileContext.Split('\r');                                            // 按行分割
+            string[] Context = FileContext.Split('\n');                                            // 按行分割
             string MmapContextStr = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数组
             {
-                if (Context[i].Contains("Name=" + User))                                           // 找到对应用户名
-                    MmapContextStr = Context[i].Substring(("Name=" + User).Length);                // 写入缓存
+                if (Context[i].Substring(5, Context[i].IndexOf("&") - 5) == User)                                           // 找到对应用户名
+                    MmapContextStr = Context[i].Substring(("Name=" + User + "&{").Length);                // 写入缓存
             }
             List<string> MmapContext = new List<string>();
-            for (int i = 0; i < MmapContextStr.Split("}{").Length - 1; i = i + 1)                  // 遍历缓存
+            for (int i = 0; i < MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1; i = i + 1)                  // 遍历缓存
             {
-                MmapContext.Add(MmapContextStr.Split("}{")[i]);                                    // 找到对应映射
+                MmapContext.Add(MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[i]);                                    // 找到对应映射
             }
             Flow Return = null;
-            MmapContext.Add(MmapContextStr.Split("}{")[MmapContextStr.Split("}{").Length - 1].Replace("}", ""));
+            string LastMmap = MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1];
+            MmapContext.Add(LastMmap.Substring(0, LastMmap.IndexOf("}")));
             for (int i = 0; i < MmapContext.Count; i = i + 1)
             {
                 if (MmapContext[i].Split(',')[1] == IP && MmapContext[i].Split(',')[2] == Port)    // 获取映射速度
@@ -158,24 +159,25 @@ namespace PMMP
         /// <param name="User">用户名</param>
         /// <param name="IP">监听IP</param>
         /// <param name="Port">监听端口</param>
-        /// <returns></returns>
+        /// <returns>Bug已消除</returns>
         public static bool SelectMmap(string User, string IP, string Port)
         {
             string FileContext = GetFile("Sql/Mmap.db");                                           // 获取映射规则文件内容
-            string[] Context = FileContext.Split('\r');                                            // 分割数据
+            string[] Context = FileContext.Split('\n');                                            // 分割数据
             string MmapContextStr = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数据
             {
-                if (Context[i].Contains("Name=" + User))
-                    MmapContextStr = Context[i].Substring(("Name=" + User).Length);                // 找到对应数据
+                if (Context[i].Contains("Name=" + User + "&{"))
+                    MmapContextStr = Context[i].Substring(("Name=" + User + "&{").Length);                // 找到对应数据
             }
             List<string> MmapContext = new List<string>();
-            for (int i = 0; i < MmapContextStr.Split("}{").Length - 1; i = i + 1)                  // 遍历缓存
+            for (int i = 0; i < MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1; i = i + 1)                  // 遍历缓存
             {
-                MmapContext.Add(MmapContextStr.Split("}{")[i]);                                    // 加入映射数组
+                MmapContext.Add(MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[i]);                                    // 加入映射数组
             }
             bool Return = false;
-            MmapContext.Add(MmapContextStr.Split("}{")[MmapContextStr.Split("}{").Length - 1].Replace("}", ""));
+            string LastMmap = MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1];
+            MmapContext.Add(LastMmap.Substring(0, LastMmap.IndexOf("}")));
             for (int i = 0; i < MmapContext.Count; i = i + 1)
             {
                 if (MmapContext[i].Split(',')[1] == IP && MmapContext[i].Split(',')[2] == Port)    // 核对映射
@@ -191,29 +193,31 @@ namespace PMMP
         /// <param name="User">用户名</param>
         /// <param name="IP">监听IP</param>
         /// <param name="Port">端口</param>
-        /// <returns></returns>
+        /// <returns>Bug已消除</returns>
         public static Speed SelectMmapSpeed(string User, string IP, string Port)
         {
             string FileContext = GetFile("Sql/Mmap.db");                                           // 获取数据文件
-            string[] Context = FileContext.Split('\r');                                            // 分割数据
+            string[] Context = FileContext.Split('\n');                                            // 分割数据
             string MmapContextStr = null;
             for (int i = 0; i < Context.Length; i = i + 1)                                         // 遍历数据
             {
-                if (Context[i].Contains("Name=" + User))
-                    MmapContextStr = Context[i].Substring(("Name=" + User).Length);                // 找到对应数据
+                if (Context[i].Contains("Name=" + User + "&{"))
+                    MmapContextStr = Context[i].Substring(("Name=" + User + "&{").Length);                // 找到对应数据
             }
             List<string> MmapContext = new List<string>();
-            for (int i = 0; i < MmapContextStr.Split("}{").Length - 1; i = i + 1)                  // 遍历缓存
+            for (int i = 0; i < MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1; i = i + 1)                  // 遍历缓存
             {
-                MmapContext.Add(MmapContextStr.Split("}{")[i]);                                    // 加入集合
+                MmapContext.Add(MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[i]);                                    // 加入集合
             }
             Speed Return = null;
-            MmapContext.Add(MmapContextStr.Split("}{")[MmapContextStr.Split("}{").Length - 1].Replace("}", ""));
+            string LastMmap = MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None)[MmapContextStr.Split(new string[] { "}{" }, StringSplitOptions.None).Length - 1];
+            MmapContext.Add(LastMmap.Substring(0, LastMmap.IndexOf("}")));
             for (int i = 0; i < MmapContext.Count; i = i + 1)                                      // 遍历集合
             {
                 if (MmapContext[i].Split(',')[1] == IP && MmapContext[i].Split(',')[2] == Port)    // 核对数据
                 {
-                    Return = new Speed(int.Parse(MmapContext[i].Split(',')[3]) / 8 * 1024 * 1024); // 返回数据
+                    double length = double.Parse(MmapContext[i].Split(',')[3]) / (double)8 * 1024 * 1024;
+                    Return = new Speed(length); // 返回数据
                 }
             }
             return Return;
