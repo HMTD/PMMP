@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PMMP
 {
@@ -64,7 +65,13 @@ namespace PMMP
         /// 查询映射方法
         /// </summary>
         public SeleteMmapListDelegate GetMmapList;
-        #endregion 
+        public delegate string SelectMmapAlldelegate(string User); public SelectMmapAlldelegate SelectMmapAll;
+        public delegate string SelectPassworddelegate(string User); public SelectPassworddelegate SelectPassword;
+        public delegate Flow SelectFlowdelegate(string User, string IP, string Port); public SelectFlowdelegate SelectFlow;
+        public delegate bool SelectMmapdelegate(string User, string IP, string Port); public SelectMmapdelegate SelectMmap;
+        public delegate Speed SelectMmapSpeeddelegate(string User, string IP, string Port); public SelectMmapSpeeddelegate SelectMmapSpeed;
+        public delegate void WriteSpenddlelegate(string User, string IP, string Port, string Flow); public WriteSpenddlelegate WriteSpend;
+        #endregion
         /// <summary>
         /// 构造函数
         /// </summary>
@@ -178,7 +185,7 @@ namespace PMMP
                 {
                     string User = Message[1];
                     string Pwd = Message[2];
-                    if (Select.SelectPassword(User) == Pwd && Pwd != "" && Pwd != null)            // 验证用户名密码
+                    if (SelectPassword(User) == Pwd && Pwd != "" && Pwd != null)            // 验证用户名密码
                     {
                         SendMessage(endPoint, "Login OK 200");                                     // 发送登录成功代码
                         Login.Add(endPoint, None[endPoint]);                                       // 在字典添加
@@ -198,13 +205,13 @@ namespace PMMP
                         string[] Mmap = Message[1].Split(',');                                     // 分割数据
                         for (int i = 0; i < Mmap.Length; i = i + 1)
                         {
-                            if (Select.SelectMmap(ThisConneter.User, Mmap[1], Mmap[2]))            // 遍历数据，检查权限
+                            if (SelectMmap(ThisConneter.User, Mmap[1], Mmap[2]))            // 遍历数据，检查权限
                             {
                                 // 创建新映射对象并且实例化     用户名               IP地址                      端口                            查询映射速度        用户名        ip      端口
-                                Mmaper NewMmap = new Mmaper(ThisConneter.User, IPAddress.Parse(Mmap[1]), new Ports(int.Parse(Mmap[2])), Select.SelectMmapSpeed(ThisConneter.User, Mmap[1], Mmap[2]));
+                                Mmaper NewMmap = new Mmaper(ThisConneter.User, IPAddress.Parse(Mmap[1]), new Ports(int.Parse(Mmap[2])), SelectMmapSpeed(ThisConneter.User, Mmap[1], Mmap[2]));
                                 MmapDict.Add(NewMmap);                                             // 添加到映射规则集合
                                                                                                    // 创建映射对象并且实例化，映射规则    查询剩余流量    用户名           ip       端口
-                                Mmaps mmaps = new Mmaps(NewMmap, Select.SelectFlow(ThisConneter.User, Mmap[1], Mmap[2]));
+                                Mmaps mmaps = new Mmaps(NewMmap, SelectFlow(ThisConneter.User, Mmap[1], Mmap[2]));
                                 MmapsDict.Add(new IPEndPoint(NewMmap.LocalhostIP, NewMmap.LocalhostPort.Port), mmaps);// 添加到映射规则字典
                                 mmaps.Messages += MmapMessager;                                    // 绑定接收消息事件
                                 mmaps.Conneter += MmapConneter;                                    // 绑定收到连接事件
@@ -224,7 +231,7 @@ namespace PMMP
                 {
                     if (ThisConneter.ConnetType != ConnetType.None)
                     {
-                        string Return = "MmapSelectReturn " + Select.SelectMmapAll(ThisConneter.User);// 获取用户名下的所有映射规则
+                        string Return = "MmapSelectReturn " + SelectMmapAll(ThisConneter.User);// 获取用户名下的所有映射规则
                         SendMessage(endPoint, Return);                                             // 发送给客户端
                     }
                     else
@@ -285,11 +292,11 @@ namespace PMMP
                             double MB = flow.MB;                                                   // 获取MB数值
                             if (flow.IsInfinity)
                             {
-                                Select.WriteSpend(ThisConneter.User, ServeriPAddress.ToString(), ServerPort.Port.ToString(), "∞");
+                                WriteSpend(ThisConneter.User, ServeriPAddress.ToString(), ServerPort.Port.ToString(), "∞");
                             }
                             else
                             {
-                                Select.WriteSpend(ThisConneter.User, ServeriPAddress.ToString(), ServerPort.Port.ToString(), MB.ToString());
+                                WriteSpend(ThisConneter.User, ServeriPAddress.ToString(), ServerPort.Port.ToString(), MB.ToString());
                             }
                         }
                         else
